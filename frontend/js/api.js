@@ -1,6 +1,6 @@
 ﻿// API клиент для общения с бэкендом
 
-const API_URL = "http://localhost:8000";
+const API_URL = "";
 
 class API {
     static getToken() {

@@ -1,4 +1,5 @@
-﻿from fastapi import FastAPI, Depends, HTTPException, status
+from app.database import engine, Base, get_db, SessionLocal
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -10,6 +11,45 @@ from app.database import engine, Base, get_db
 from app import models, schemas, auth, chatbot, analyzer
 
 Base.metadata.create_all(bind=engine)
+
+# Автозаполнение БД при первом запуске
+def seed_database():
+    from app.auth import hash_password
+    db = SessionLocal()
+    try:
+        # Добавляем услуги если их нет
+        if db.query(models.Service).count() == 0:
+            services = [
+                models.Service(name="Справка об обучении", category="docs", description="Справка для предоставления по месту требования", department="Учебная часть", processing_time="1-3 дня"),
+                models.Service(name="Справка для военкомата", category="docs", description="Справка для военкомата о форме обучения", department="Учебная часть", processing_time="1 день"),
+                models.Service(name="Академическая стипендия", category="money", description="Назначение академической стипендии", department="Бухгалтерия", processing_time="1 месяц"),
+                models.Service(name="Социальная стипендия", category="money", description="Социальная стипендия для нуждающихся", department="Бухгалтерия", processing_time="2-3 недели"),
+                models.Service(name="Общежитие", category="housing", description="Заселение в общежитие", department="Воспитательный отдел", processing_time="2 недели"),
+                models.Service(name="Расписание занятий", category="study", description="Получение расписания на семестр", department="Учебная часть", processing_time="1 день"),
+                models.Service(name="Перевод на другую специальность", category="study", description="Перевод на другую специальность", department="Учебная часть", processing_time="1 месяц"),
+                models.Service(name="Восстановление в колледже", category="study", description="Восстановление после отчисления", department="Учебная часть", processing_time="2-4 недели"),
+            ]
+            db.add_all(services)
+            db.commit()
+            print("✅ Услуги добавлены!")
+
+        # Добавляем admin если нет
+        if db.query(models.User).count() == 0:
+            admin = models.User(
+                username="admin",
+                email="admin@vtk.ru",
+                hashed_password=hash_password("admin123"),
+                full_name="Администратор ВТК",
+                role="admin",
+                is_active=True
+            )
+            db.add(admin)
+            db.commit()
+            print("✅ Admin добавлен!")
+    finally:
+        db.close()
+
+seed_database()
 
 app = FastAPI(title="VTK AI Service", version="1.0.0")
 
